@@ -6,6 +6,29 @@
     <link rel="shortcut icon" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Instagram Analyzer</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: sans-serif; }
+
+      .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+      .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+      .profile-header { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+      .analysis-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+      .search-card { width: 100%; max-width: 480px; background: #fff; border-radius: 20px; padding: 40px; box-shadow: 0 8px 40px #e1306c22; }
+      .date-tabs button { flex: 1; padding: 10px; border: none; cursor: pointer; font-weight: 600; font-size: 13px; }
+
+      @media (max-width: 600px) {
+        .grid-3 { grid-template-columns: repeat(2, 1fr); }
+        .grid-2 { grid-template-columns: 1fr; }
+        .profile-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+        .analysis-header { flex-direction: column; align-items: flex-start; }
+        .analysis-header button { width: 100%; justify-content: center; }
+        .search-card { padding: 24px 16px; border-radius: 16px; }
+        .date-tabs button { font-size: 11px; padding: 8px 4px; }
+        th, td { padding: 8px 8px !important; font-size: 11px !important; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

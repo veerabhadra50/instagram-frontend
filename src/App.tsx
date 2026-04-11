@@ -64,7 +64,7 @@ function downloadCSV(rows: any[], filename: string) {
 }
 
 const thStyle: React.CSSProperties = { padding: '10px 14px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#555', background: '#f0f0f0', borderBottom: '2px solid #ddd', whiteSpace: 'nowrap' }
-const tdStyle: React.CSSProperties = { padding: '9px 14px', fontSize: 13, borderBottom: '1px solid #f0f0f0', whiteSpace: 'nowrap' }
+const tdStyle: React.CSSProperties = { padding: '9px 14px', fontSize: 13, borderBottom: '1px solid #f0f0f0' }
 
 type Screen = 'search' | 'profile' | 'analysis'
 type DateMode = 'single' | 'range' | 'manual'
@@ -168,7 +168,7 @@ export default function App() {
   // ── SCREEN 1: Search ──────────────────────────────────────────────
   if (screen === 'search') return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg,#f5f5f5,#ffe4ef)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ width: '100%', maxWidth: 480, background: '#fff', borderRadius: 20, padding: 40, boxShadow: '0 8px 40px #e1306c22' }}>
+      <div className="search-card">
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ fontSize: 48, marginBottom: 8 }}>
             <svg width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -212,7 +212,7 @@ export default function App() {
 
         {/* Profile Card */}
         <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px #0001', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20 }}>
+          <div className="profile-header">
             {profile.profile_pic
               ? <img src={proxyImg(profile.profile_pic)} alt="pic" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid #e1306c' }} />
               : <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>👤</div>}
@@ -226,20 +226,17 @@ export default function App() {
             </div>
           </div>
 
-          {/* Row 1: Followers, Following, Posts */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 10 }}>
+          <div className="grid-3">
             <StatCard label="👥 Followers" value={fmt(profile.followers)} color="#3897f0" />
             <StatCard label="➡️ Following" value={fmt(profile.following)} color="#888" />
             <StatCard label="📸 Posts" value={fmt(profile.posts_count)} color="#e1306c" />
           </div>
-          {/* Row 2: Engagement only */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 10 }}>
+          <div className="grid-3" style={{ marginBottom: 10 }}>
             <StatCard label="📈 Engagement" value={`${engagementRate}%`} sub="rate" color="#10b981" />
             <StatCard label="❤️ Avg Likes" value={fmt(profile.avg_likes)} sub="per post" color="#e1306c" />
             <StatCard label="💬 Avg Comments" value={fmt(profile.avg_comments)} sub="per post" color="#3897f0" />
           </div>
-          {/* Row 3: Avg Reel Views */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 16 }}>
+          <div className="grid-3" style={{ marginBottom: 16 }}>
             <StatCard label="👁️ Avg Reel Views" value={fmt(profile.avg_reel_views)} sub="per reel" color="#a855f7" />
           </div>
 
@@ -251,7 +248,7 @@ export default function App() {
         {/* Date Selector Panel - no Posts/Reels toggle */}
         <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px #0001', marginTop: 16 }}>
           <h3 style={{ margin: '0 0 16px 0', fontSize: 17 }}>📅 Select Dates</h3>
-          <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden', border: '1.5px solid #ddd' }}>
+          <div className="date-tabs" style={{ display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden', border: '1.5px solid #ddd' }}>
             {(['single', 'range', 'manual'] as DateMode[]).map(m => (
               <button key={m} onClick={() => setDateMode(m)}
                 style={{ flex: 1, padding: '10px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13,
@@ -266,7 +263,7 @@ export default function App() {
               style={{ padding: '10px 14px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 14, width: '100%', boxSizing: 'border-box', marginBottom: 16 }} />
           )}
           {dateMode === 'range' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div className="grid-2">
               <div>
                 <p style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>Start Date</p>
                 <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
@@ -316,7 +313,7 @@ export default function App() {
         <button onClick={() => setScreen('profile')} style={{ marginBottom: 16, background: 'none', border: 'none', cursor: 'pointer', color: '#888', fontSize: 14 }}>← Back to Profile</button>
 
         <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px #0001' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+          <div className="analysis-header">
             <div>
               <h3 style={{ margin: 0, fontSize: 18 }}>📊 Analysis Dashboard</h3>
               <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#888' }}>
@@ -339,7 +336,7 @@ export default function App() {
           ) : (
             <>
               {/* Summary Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 10, marginBottom: 20 }}>
+              <div className="grid-stats">
                 <StatCard label="📊 Total Items" value={analysisData.length.toString()} color="#3897f0" />
                 <StatCard label="❤️ Total Likes" value={fmt(totalLikes)} color="#e1306c" />
                 <StatCard label="💬 Total Comments" value={fmt(totalComments)} color="#f59e0b" />
