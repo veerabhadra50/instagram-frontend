@@ -11,7 +11,7 @@ interface Profile {
 }
 interface MediaItem { id: string; code?: string; thumbnail: string; likes: number; comments: number; views: number; shares: number; date: string; media_type?: string }
 
-const proxyImg = (url: string) => url ? `http://localhost:5000/proxy-image?url=${encodeURIComponent(url)}` : ''
+const proxyImg = (url: string) => url ? `${import.meta.env.VITE_PROXY_BASE}/proxy-image?url=${encodeURIComponent(url)}` : ''
 const fmt = (n: number) => (n || 0).toLocaleString()
 
 function extractUsername(input: string) {

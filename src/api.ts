@@ -1,4 +1,4 @@
-const BASE = "http://localhost:5000/api/instagram";
+const BASE = import.meta.env.VITE_API_BASE;
 
 const get = (url: string) => fetch(url).then(r => r.json());
 
