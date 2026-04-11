@@ -155,7 +155,7 @@ export default function App() {
 
     if (filtered.length > 0) {
       try {
-        const res = await fetch('http://localhost:5000/api/instagram/enrich-media', {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE}/enrich-media`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ items: filtered })
         })
@@ -290,7 +290,7 @@ export default function App() {
           <button onClick={async () => {
             setAllLoading(true)
             try {
-              const res = await fetch(`http://localhost:5000/api/instagram/all-posts-reels/${profile.username}`)
+              const res = await fetch(`${import.meta.env.VITE_API_BASE}/all-posts-reels/${profile.username}`)
               const json = await res.json()
               if (json.posts) setPosts(json.posts)
               if (json.reels) setReels(json.reels)
