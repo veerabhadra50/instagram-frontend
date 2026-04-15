@@ -43,9 +43,23 @@ function StatCard({ label, value, sub, color }: { label: string; value: string; 
 
 function toYMD(d: string) {
   if (!d) return ''
-  if (d.includes('-') && d.indexOf('-') === 4) return d
+  // Unix timestamp (seconds)
+  if (/^\d{9,11}$/.test(d.trim())) {
+    const dt = new Date(parseInt(d) * 1000)
+    return dt.toISOString().slice(0, 10)
+  }
+  // ISO datetime string e.g. 2024-06-30T10:00:00 or 2024-06-30 10:00:00
+  if (d.includes('T') || (d.includes('-') && d.includes(':'))) {
+    return d.slice(0, 10)
+  }
+  // Already YYYY-MM-DD
+  if (d.includes('-') && d.indexOf('-') === 4) return d.slice(0, 10)
+  // DD-MM-YYYY (e.g. 10-04-2026)
+  const h = d.split('-')
+  if (h.length === 3 && h[2].length === 4) return `${h[2]}-${h[1].padStart(2, '0')}-${h[0].padStart(2, '0')}`
+  // DD/MM/YYYY (e.g. 10/04/2026)
   const p = d.split('/')
-  if (p.length === 3) return `${p[2]}-${p[0].padStart(2, '0')}-${p[1].padStart(2, '0')}`
+  if (p.length === 3) return `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`
   return d
 }
 
@@ -91,6 +105,8 @@ export default function App() {
   const [analysisData, setAnalysisData] = useState<MediaItem[]>([])
   const [allLoading, setAllLoading] = useState(false)
   const [analysisLabel, setAnalysisLabel] = useState('')
+  const [progress, setProgress] = useState(0)
+  const [debugInfo, setDebugInfo] = useState('')
 
   async function handleAnalyze() {
     if (!input.trim()) return
@@ -129,8 +145,13 @@ export default function App() {
     } finally { setLoading(false) }
   }
 
-  async function handleDateSubmit() {
-    const allData = [...posts, ...reels]
+  async function handleDateSubmit(freshPosts = posts, freshReels = reels) {
+    const allData = [...freshPosts, ...freshReels]
+
+    // Debug: show raw date samples from API
+    const sample = allData.slice(0, 5).map(i => `raw="${i.date}" → ymd="${toYMD(i.date)}"`).join(' | ')
+    setDebugInfo(`Total fetched: ${allData.length} items. Sample dates: ${sample || 'none'}`)
+
     let filtered: MediaItem[] = []
     let label = ''
 
@@ -143,8 +164,9 @@ export default function App() {
       filtered = allData.filter(item => { const d = toYMD(item.date); return d && d >= startDate && d <= endDate })
       label = `${fmtDisplay(startDate)} → ${fmtDisplay(endDate)}`
     } else {
-      const dates = manualDates.split(',').map(d => d.trim()).filter(Boolean)
-      if (!dates.length) return
+      const rawDates = manualDates.split(/[,\n]/).map(d => d.trim()).filter(Boolean)
+      if (!rawDates.length) return
+      const dates = rawDates.map(toYMD)
       filtered = allData.filter(item => dates.includes(toYMD(item.date)))
       label = dates.map(fmtDisplay).join(', ')
     }
@@ -248,6 +270,11 @@ export default function App() {
         {/* Date Selector Panel - no Posts/Reels toggle */}
         <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px #0001', marginTop: 16 }}>
           <h3 style={{ margin: '0 0 16px 0', fontSize: 17 }}>📅 Select Dates</h3>
+          {debugInfo && (
+            <div style={{ background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: '#7c5e00', marginBottom: 12, wordBreak: 'break-all' }}>
+              🔍 {debugInfo}
+            </div>
+          )}
           <div className="date-tabs" style={{ display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden', border: '1.5px solid #ddd' }}>
             {(['single', 'range', 'manual'] as DateMode[]).map(m => (
               <button key={m} onClick={() => setDateMode(m)}
@@ -278,24 +305,44 @@ export default function App() {
           )}
           {dateMode === 'manual' && (
             <div style={{ marginBottom: 16 }}>
-              <p style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>Enter dates separated by commas (YYYY-MM-DD)</p>
+              <p style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>Enter dates — DD/MM/YYYY or DD-MM-YYYY, comma or newline separated</p>
               <textarea value={manualDates} onChange={e => setManualDates(e.target.value)}
-                placeholder="e.g. 2026-04-08, 2026-03-15, 2026-02-20"
+                placeholder="e.g. 01/04/2026, 02/04/2026 or 01-04-2026, 02-04-2026"
                 style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 14, boxSizing: 'border-box', minHeight: 80, resize: 'vertical' }} />
             </div>
           )}
           <button onClick={async () => {
             setAllLoading(true)
+            setProgress(0)
+            let freshPosts = posts, freshReels = reels
+            // Simulate progress while fetching
+            const interval = setInterval(() => {
+              setProgress(p => p < 85 ? p + Math.floor(Math.random() * 12) + 3 : p)
+            }, 400)
             try {
               const res = await fetch(`${import.meta.env.VITE_API_BASE}/all-posts-reels/${profile.username}`)
               const json = await res.json()
-              if (json.posts) setPosts(json.posts)
-              if (json.reels) setReels(json.reels)
+              if (json.posts) { freshPosts = json.posts; setPosts(json.posts) }
+              if (json.reels) { freshReels = json.reels; setReels(json.reels) }
             } catch { }
-            setAllLoading(false)
-            handleDateSubmit()
-          }} style={{ width: '100%', padding: '13px', borderRadius: 10, background: '#217346', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 15 }}>
-            {allLoading ? '⏳ Loading...' : '📊 Submit & Generate Analysis'}
+            clearInterval(interval)
+            setProgress(100)
+            setTimeout(() => { setAllLoading(false); setProgress(0); handleDateSubmit(freshPosts, freshReels) }, 400)
+          }} disabled={allLoading} style={{ width: '100%', padding: '13px', borderRadius: 10, background: allLoading ? '#1a5c38' : '#217346', color: '#fff', border: 'none', cursor: allLoading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            {allLoading ? (
+              <>
+                <svg width="28" height="28" viewBox="0 0 36 36" style={{ flexShrink: 0 }}>
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="3.5" />
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="#fff" strokeWidth="3.5"
+                    strokeDasharray={`${(progress / 100) * 94.2} 94.2`}
+                    strokeLinecap="round"
+                    transform="rotate(-90 18 18)"
+                    style={{ transition: 'stroke-dasharray 0.35s ease' }} />
+                  <text x="18" y="22" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold">{progress}%</text>
+                </svg>
+                Analyzing...
+              </>
+            ) : '📊 Submit & Generate Analysis'}
           </button>
         </div>
       </div>
