@@ -287,16 +287,18 @@ export default function App() {
 
         {/* Profile Card */}
         <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px #0001', marginBottom: 16 }}>
-          <div className="profile-header">
-            {profile.profile_pic
-              ? <img src={proxyImg(profile.profile_pic)} alt="pic" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid #e1306c' }} />
-              : <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>👤</div>}
-            <div>
-              <h2 style={{ margin: 0, fontSize: 20 }}>@{profile.username}</h2>
-              {profile.full_name && <p style={{ margin: '4px 0', color: '#555', fontWeight: 600 }}>{profile.full_name}</p>}
-              <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                <span style={{ fontSize: 12, background: '#e1306c22', color: '#e1306c', padding: '3px 10px', borderRadius: 20 }}>{getAccountType(profile)}</span>
-                <span style={{ fontSize: 12, background: '#f0f0f0', color: '#555', padding: '3px 10px', borderRadius: 20 }}>{profile.is_private ? '🔒 Private' : '🌐 Public'}</span>
+          <div className="profile-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              {profile.profile_pic
+                ? <img src={proxyImg(profile.profile_pic)} alt="pic" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid #e1306c' }} />
+                : <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>👤</div>}
+              <div>
+                <h2 style={{ margin: 0, fontSize: 20 }}>@{profile.username}</h2>
+                {profile.full_name && <p style={{ margin: '4px 0', color: '#555', fontWeight: 600 }}>{profile.full_name}</p>}
+                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                  <span style={{ fontSize: 12, background: '#e1306c22', color: '#e1306c', padding: '3px 10px', borderRadius: 20 }}>{getAccountType(profile)}</span>
+                  <span style={{ fontSize: 12, background: '#f0f0f0', color: '#555', padding: '3px 10px', borderRadius: 20 }}>{profile.is_private ? '🔒 Private' : '🌐 Public'}</span>
+                </div>
               </div>
             </div>
             <DownloadAllBtn username={profile.username} />
