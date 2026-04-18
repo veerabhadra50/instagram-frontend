@@ -73,8 +73,61 @@ function fmtDisplay(d: string) {
 function downloadCSV(rows: any[], filename: string) {
   const header = ['#', 'Date', 'Type', 'Likes', 'Comments', 'Views']
   const lines = [header.join(','), ...rows.map((r, i) => [i + 1, r.date, r.type, r.likes, r.comments, r.views].join(','))]
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv' })
+  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click()
+}
+
+function DownloadAllBtn({ username }: { username: string }) {
+  const [busy, setBusy] = useState(false)
+  const [prog, setProg] = useState(0)
+
+  async function handleDownloadAll() {
+    setBusy(true); setProg(0)
+    const iv = setInterval(() => setProg(p => p < 85 ? p + Math.floor(Math.random() * 10) + 3 : p), 500)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE}/all-posts-reels/${username}`)
+      const json = await res.json()
+      const raw: MediaItem[] = [...(json.posts ?? []), ...(json.reels ?? [])]
+      // Deduplicate: carousel posts share same date+likes+comments — keep only first occurrence
+      const seen = new Set<string>()
+      const all = raw.filter(item => {
+        const key = `${item.date}_${item.likes}_${item.comments}_${item.media_type}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      all.sort((a, b) => toYMD(b.date).localeCompare(toYMD(a.date)))
+      clearInterval(iv); setProg(100)
+      downloadCSV(all.map(item => ({
+        date: fmtDisplay(item.date),
+        type: item.media_type === 'reel' ? 'Reel' : 'Image',
+        likes: item.likes,
+        comments: item.comments,
+        views: item.views || 0
+      })), `${username}_all_posts.csv`)
+    } catch { clearInterval(iv) }
+    setTimeout(() => { setBusy(false); setProg(0) }, 600)
+  }
+
+  return (
+    <button onClick={handleDownloadAll} disabled={busy} title="Download all posts data as Excel"
+      style={{ width: 54, height: 54, borderRadius: '50%', border: '2.5px solid #222', background: '#fff', cursor: busy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px #0002', flexShrink: 0 }}>
+      {busy ? (
+        <svg width="32" height="32" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="14" fill="none" stroke="#eee" strokeWidth="3.5" />
+          <circle cx="18" cy="18" r="14" fill="none" stroke="#22c55e" strokeWidth="3.5"
+            strokeDasharray={`${(prog / 100) * 87.96} 87.96`} strokeLinecap="round"
+            transform="rotate(-90 18 18)" style={{ transition: 'stroke-dasharray 0.35s' }} />
+          <text x="18" y="22" textAnchor="middle" fill="#222" fontSize="8" fontWeight="bold">{prog}%</text>
+        </svg>
+      ) : (
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 3v13M7 11l5 5 5-5" />
+          <path d="M5 20h14" />
+        </svg>
+      )}
+    </button>
+  )
 }
 
 const thStyle: React.CSSProperties = { padding: '10px 14px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#555', background: '#f0f0f0', borderBottom: '2px solid #ddd', whiteSpace: 'nowrap' }
@@ -246,6 +299,7 @@ export default function App() {
                 <span style={{ fontSize: 12, background: '#f0f0f0', color: '#555', padding: '3px 10px', borderRadius: 20 }}>{profile.is_private ? '🔒 Private' : '🌐 Public'}</span>
               </div>
             </div>
+            <DownloadAllBtn username={profile.username} />
           </div>
 
           <div className="grid-3">
@@ -315,12 +369,14 @@ export default function App() {
             setAllLoading(true)
             setProgress(0)
             let freshPosts = posts, freshReels = reels
-            // Simulate progress while fetching
             const interval = setInterval(() => {
-              setProgress(p => p < 85 ? p + Math.floor(Math.random() * 12) + 3 : p)
-            }, 400)
+              setProgress(p => p < 92 ? p + Math.floor(Math.random() * 8) + 2 : p)
+            }, 600)
             try {
-              const res = await fetch(`${import.meta.env.VITE_API_BASE}/all-posts-reels/${profile.username}`)
+              const controller = new AbortController()
+              const timeout = setTimeout(() => controller.abort(), 60000)
+              const res = await fetch(`${import.meta.env.VITE_API_BASE}/all-posts-reels/${profile.username}`, { signal: controller.signal })
+              clearTimeout(timeout)
               const json = await res.json()
               if (json.posts) { freshPosts = json.posts; setPosts(json.posts) }
               if (json.reels) { freshReels = json.reels; setReels(json.reels) }
