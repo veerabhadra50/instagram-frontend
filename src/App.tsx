@@ -82,6 +82,7 @@ function DownloadAllBtn({ username }: { username: string }) {
   const [prog, setProg] = useState(0)
 
   async function handleDownloadAll() {
+    if (busy) return
     setBusy(true); setProg(0)
     const iv = setInterval(() => setProg(p => p < 85 ? p + Math.floor(Math.random() * 10) + 3 : p), 500)
     try {
