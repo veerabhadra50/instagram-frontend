@@ -368,7 +368,7 @@ export default function App() {
             }, 600)
             try {
               const controller = new AbortController()
-              const timeout = setTimeout(() => controller.abort(), 300000)
+              const timeout = setTimeout(() => controller.abort(), 900000)
               const res = await fetch(`${import.meta.env.VITE_API_BASE}/all-posts-reels/${profile.username}`, { signal: controller.signal })
               clearTimeout(timeout)
               const json = await res.json()
