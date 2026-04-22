@@ -228,16 +228,7 @@ export default function App() {
     setAnalysisLabel(label)
     setScreen('analysis')
 
-    if (filtered.length > 0) {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE}/enrich-media`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: filtered })
-        })
-        const json = await res.json()
-        if (json.items) setAnalysisData(json.items)
-      } catch { }
-    }
+
   }
 
   // ── SCREEN 1: Search ──────────────────────────────────────────────
@@ -376,13 +367,13 @@ export default function App() {
             }, 600)
             try {
               const controller = new AbortController()
-              const timeout = setTimeout(() => controller.abort(), 60000)
+              const timeout = setTimeout(() => controller.abort(), 300000)
               const res = await fetch(`${import.meta.env.VITE_API_BASE}/all-posts-reels/${profile.username}`, { signal: controller.signal })
               clearTimeout(timeout)
               const json = await res.json()
               if (json.posts) { freshPosts = json.posts; setPosts(json.posts) }
               if (json.reels) { freshReels = json.reels; setReels(json.reels) }
-            } catch { }
+            } catch (e) { console.error('fetch failed', e) }
             clearInterval(interval)
             setProgress(100)
             setTimeout(() => { setAllLoading(false); setProgress(0); handleDateSubmit(freshPosts, freshReels) }, 400)
