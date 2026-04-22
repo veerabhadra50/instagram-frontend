@@ -84,29 +84,41 @@ function DownloadAllBtn({ username }: { username: string }) {
   async function handleDownloadAll() {
     if (busy) return
     setBusy(true); setProg(0)
-    const iv = setInterval(() => setProg(p => p < 85 ? p + Math.floor(Math.random() * 10) + 3 : p), 500)
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE}/all-posts-reels/${username}`)
-      const json = await res.json()
-      const raw: MediaItem[] = [...(json.posts ?? []), ...(json.reels ?? [])]
-      // Deduplicate: carousel posts share same date+likes+comments — keep only first occurrence
-      const seen = new Set<string>()
-      const all = raw.filter(item => {
-        const key = `${item.date}_${item.likes}_${item.comments}_${item.media_type}`
-        if (seen.has(key)) return false
-        seen.add(key)
-        return true
+      await new Promise<void>((resolve, reject) => {
+        const es = new EventSource(`${import.meta.env.VITE_API_BASE}/all-posts-reels/${username}`)
+        es.onmessage = (e) => {
+          const data = JSON.parse(e.data)
+          if (data.type === 'progress') {
+            const total = (data.posts || 0) + (data.reels || 0)
+            setProg(Math.min(85, Math.floor(total / 5)))
+          } else if (data.type === 'done') {
+            const raw: MediaItem[] = [...(data.posts ?? []), ...(data.reels ?? [])]
+            const seen = new Set<string>()
+            const all = raw.filter(item => {
+              const key = `${item.date}_${item.likes}_${item.comments}_${item.media_type}`
+              if (seen.has(key)) return false
+              seen.add(key)
+              return true
+            })
+            all.sort((a, b) => toYMD(b.date).localeCompare(toYMD(a.date)))
+            setProg(100)
+            downloadCSV(all.map(item => ({
+              date: fmtDisplay(item.date),
+              type: item.media_type === 'reel' ? 'Reel' : 'Image',
+              likes: item.likes,
+              comments: item.comments,
+              views: item.views || 0
+            })), `${username}_all_posts.csv`)
+            es.close()
+            resolve()
+          } else if (data.type === 'error') {
+            es.close(); reject(new Error(data.message))
+          }
+        }
+        es.onerror = () => { es.close(); reject(new Error('Stream error')) }
       })
-      all.sort((a, b) => toYMD(b.date).localeCompare(toYMD(a.date)))
-      clearInterval(iv); setProg(100)
-      downloadCSV(all.map(item => ({
-        date: fmtDisplay(item.date),
-        type: item.media_type === 'reel' ? 'Reel' : 'Image',
-        likes: item.likes,
-        comments: item.comments,
-        views: item.views || 0
-      })), `${username}_all_posts.csv`)
-    } catch { clearInterval(iv) }
+    } catch { }
     setTimeout(() => { setBusy(false); setProg(0) }, 600)
   }
 
@@ -363,20 +375,30 @@ export default function App() {
             setAllLoading(true)
             setProgress(0)
             let freshPosts = posts, freshReels = reels
-            const interval = setInterval(() => {
-              setProgress(p => p < 92 ? p + Math.floor(Math.random() * 8) + 2 : p)
-            }, 600)
             try {
-              const controller = new AbortController()
-              const timeout = setTimeout(() => controller.abort(), 900000)
-              const res = await fetch(`${import.meta.env.VITE_API_BASE}/all-posts-reels/${profile.username}`, { signal: controller.signal })
-              clearTimeout(timeout)
-              const json = await res.json()
-              if (json.posts) { freshPosts = json.posts; setPosts(json.posts) }
-              if (json.reels) { freshReels = json.reels; setReels(json.reels) }
-            } catch (e) { console.error('fetch failed', e) }
-            clearInterval(interval)
-            setProgress(100)
+              await new Promise<void>((resolve, reject) => {
+                const es = new EventSource(`${import.meta.env.VITE_API_BASE}/all-posts-reels/${profile.username}`)
+                es.onmessage = (e) => {
+                  const data = JSON.parse(e.data)
+                  if (data.type === 'progress') {
+                    const total = (data.posts || 0) + (data.reels || 0)
+                    setProgress(Math.min(90, Math.floor(total / 5)))
+                  } else if (data.type === 'done') {
+                    freshPosts = data.posts || []
+                    freshReels = data.reels || []
+                    setPosts(freshPosts)
+                    setReels(freshReels)
+                    setProgress(100)
+                    es.close()
+                    resolve()
+                  } else if (data.type === 'error') {
+                    es.close()
+                    reject(new Error(data.message))
+                  }
+                }
+                es.onerror = () => { es.close(); reject(new Error('Stream error')) }
+              })
+            } catch (e) { console.error('SSE failed', e) }
             setTimeout(() => { setAllLoading(false); setProgress(0); handleDateSubmit(freshPosts, freshReels) }, 400)
           }} disabled={allLoading} style={{ width: '100%', padding: '13px', borderRadius: 10, background: allLoading ? '#1a5c38' : '#217346', color: '#fff', border: 'none', cursor: allLoading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
             {allLoading ? (
